@@ -11,29 +11,19 @@ st.markdown("<h1 style='text-align:center;'>⚖️ Legal AI Chatbot (DPO Fine-Tu
 
 @st.cache_resource
 def load_model():
-    base_model_id = "meta-llama/Llama-3.2-1B"
-    dpo_model_id = "models/Llama-3.2-1B-DPO"  
+    base_model = "meta-llama/Llama-3.2-1B"
+    dpo_model = "models/Llama-3.2-1B-DPO"  
 
-    tokenizer = AutoTokenizer.from_pretrained(base_model_id, trust_remote_code=True)
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
+    tokenizer = AutoTokenizer.from_pretrained(base_model, trust_remote_code=True)
 
-    # Load base model in float16 for memory efficiency and compatibility
-    base_model = AutoModelForCausalLM.from_pretrained(
-        base_model_id,
-        torch_dtype=torch.float16,
+    model = AutoModelForCausalLM.from_pretrained(
+        base_model,
         device_map="auto",
-        trust_remote_code=True
+        torch_dtype=torch.float16
     )
 
-    try:
-        # Load PEFT model and merge
-        model = PeftModel.from_pretrained(base_model, dpo_model_id)
-        model = model.merge_and_unload()
-    except Exception as e:
-        st.error(f"Error merging LoRA weights: {e}")
-        # Fallback to base model if merging fails
-        model = base_model
+    model = PeftModel.from_pretrained(model, dpo_model)
+    model = model.merge_and_unload()  
 
     pipe = pipeline(
         "text-generation",
